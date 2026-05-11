@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardList, UserPlus, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardList, UserPlus } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/footer";
 
@@ -23,11 +23,7 @@ export default function HomePage() {
 
           <div className="relative mx-auto max-w-6xl px-4 sm:px-6 pt-10 sm:pt-24 pb-14 sm:pb-28">
             <div className="max-w-3xl rise">
-              <div className="inline-flex items-center gap-2 rounded-full border border-cream-300 bg-cream-50/80 backdrop-blur px-3 py-1 text-[10px] sm:text-xs uppercase tracking-[0.18em] text-navy-700">
-                <Sparkles className="size-3.5 text-gold-600" />
-                PCEA Nanyuki Town Church · Youth Fellowship
-              </div>
-              <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-semibold leading-[1.05] tracking-tight text-navy-900 mt-5 sm:mt-6">
+              <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-semibold leading-[1.05] tracking-tight text-navy-900">
                 Welcome to the <span className="hand-underline">Youth Fellowship.</span>
               </h1>
               <p className="mt-5 sm:mt-6 text-base sm:text-lg text-navy-700 max-w-2xl leading-relaxed">
