@@ -19,7 +19,7 @@ export function SiteFooter() {
         </a>
         <a
           href="/admin/login"
-          className="text-[10px] uppercase tracking-[0.18em] text-navy-300 hover:text-navy-700 transition"
+          className="mt-1 text-[9px] uppercase tracking-[0.2em] text-neutral-300 hover:text-neutral-500 transition"
         >
           Officer login
         </a>
