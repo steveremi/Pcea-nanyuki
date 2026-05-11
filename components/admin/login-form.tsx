@@ -68,7 +68,6 @@ export function LoginForm() {
       return;
     }
 
-    toast.success("Welcome back");
     router.push(next);
     router.refresh();
   }
