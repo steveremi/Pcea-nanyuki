@@ -46,36 +46,11 @@ export default async function SettingsPage() {
         </p>
 
         <div className="grid lg:grid-cols-2 gap-4">
-          <LookupManager
-            title="Districts"
-            table="districts"
-            tooltip="Geographic districts in the church"
-            initial={lookups.districts}
-          />
-          <LookupManager
-            title="Ministries"
-            table="ministries"
-            tooltip="Ministry teams youth can join"
-            initial={lookups.ministries}
-          />
-          <LookupManager
-            title="Age groups (registration)"
-            table="age_groups"
-            tooltip="Age brackets for the registration form"
-            initial={lookups.ageGroups}
-          />
-          <LookupManager
-            title="Membership statuses"
-            table="membership_statuses"
-            tooltip="Member, Visitor, etc."
-            initial={lookups.membershipStatuses}
-          />
-          <LookupManager
-            title="Age groups (survey)"
-            table="survey_age_groups"
-            tooltip="Age brackets for the survey form"
-            initial={lookups.surveyAgeGroups}
-          />
+          <LookupManager label="Districts" table="districts" items={lookups.districts} />
+          <LookupManager label="Ministries" table="ministries" items={lookups.ministries} />
+          <LookupManager label="Age groups (registration)" table="age_groups" items={lookups.ageGroups} />
+          <LookupManager label="Membership statuses" table="membership_statuses" items={lookups.membershipStatuses} />
+          <LookupManager label="Age groups (survey)" table="survey_age_groups" items={lookups.surveyAgeGroups} />
         </div>
       </section>
     </div>
