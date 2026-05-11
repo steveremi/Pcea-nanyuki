@@ -10,18 +10,18 @@ export function SiteFooter() {
         </p>
         <AlvaniaMark />
         <a
-          href="/admin/login"
-          className="text-xs text-navy-500 hover:text-navy-900 underline-offset-4 hover:underline transition"
-        >
-          Officer login
-        </a>
-        <a
           href="https://wa.me/254702841059"
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] uppercase tracking-[0.18em] text-navy-400 hover:text-navy-700 transition"
         >
           Designed &amp; developed by Remi
+        </a>
+        <a
+          href="/admin/login"
+          className="text-[10px] uppercase tracking-[0.18em] text-navy-300 hover:text-navy-700 transition"
+        >
+          Officer login
         </a>
       </div>
     </footer>
