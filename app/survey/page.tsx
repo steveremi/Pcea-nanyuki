@@ -10,7 +10,7 @@ export const metadata = {
   title: "Survey · PCEA NTC Youth Fellowship",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function SurveyPage() {
   const lookups = await fetchLookups();

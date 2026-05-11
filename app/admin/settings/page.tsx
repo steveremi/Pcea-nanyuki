@@ -1,129 +1,83 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import type { AdminProfile } from "@/lib/types";
 import { can } from "@/lib/permissions";
 import { fetchLookups } from "@/lib/lookups";
+import { getSiteSettings } from "@/lib/site-settings";
 import { LookupManager } from "@/components/admin/lookup-manager";
+import { SiteSettingsForm } from "@/components/admin/site-settings-form";
 
 export const metadata = { title: "Settings · PCEA NTC Youth Admin" };
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase
-    .from("admin_profiles")
-    .select("*")
-    .eq("id", user!.id)
-    .single<AdminProfile>();
+    .from("admin_profiles").select("*").eq("id", user!.id).single<AdminProfile>();
 
   if (!can(profile?.role, "team", "manage")) {
     redirect("/admin");
   }
 
-  const lookups = await fetchLookups();
+  const [lookups, siteSettings] = await Promise.all([
+    fetchLookups(),
+    getSiteSettings(),
+  ]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="font-display text-3xl font-semibold text-navy-900">
-          Settings
-        </h1>
-        <p className="text-navy-600 text-sm mt-1">
-          Manage the lists shown in the registration and survey forms. Adding
-          a value here makes it instantly available on the public forms.
+        <h1 className="font-display text-2xl font-semibold text-navy-900">Settings</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Edit church info shown to the public, and manage the lists used in registration and survey forms.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <h2 className="font-display text-xl font-semibold text-navy-900">
-            Districts
-          </h2>
-          <p className="text-sm text-navy-600 mt-1">
-            Shown on registration form.
-          </p>
-        </CardHeader>
-        <CardBody>
+      <section>
+        <h2 className="font-display text-base font-semibold text-navy-900 mb-2">Church info</h2>
+        <SiteSettingsForm initial={siteSettings} />
+      </section>
+
+      <section>
+        <h2 className="font-display text-base font-semibold text-navy-900 mb-2">Lookup lists</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Adding or hiding a value here changes the dropdowns on the public forms instantly.
+        </p>
+
+        <div className="grid lg:grid-cols-2 gap-4">
           <LookupManager
+            title="Districts"
             table="districts"
-            items={lookups.districts}
-            label="district"
+            tooltip="Geographic districts in the church"
+            initial={lookups.districts}
           />
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <h2 className="font-display text-xl font-semibold text-navy-900">
-            Ministries
-          </h2>
-          <p className="text-sm text-navy-600 mt-1">
-            Service ministries youth can pick on registration (max 3).
-          </p>
-        </CardHeader>
-        <CardBody>
           <LookupManager
+            title="Ministries"
             table="ministries"
-            items={lookups.ministries}
-            label="ministry"
+            tooltip="Ministry teams youth can join"
+            initial={lookups.ministries}
           />
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <h2 className="font-display text-xl font-semibold text-navy-900">
-            Registration age groups
-          </h2>
-          <p className="text-sm text-navy-600 mt-1">
-            Used on the public registration form.
-          </p>
-        </CardHeader>
-        <CardBody>
           <LookupManager
+            title="Age groups (registration)"
             table="age_groups"
-            items={lookups.ageGroups}
-            label="age group"
+            tooltip="Age brackets for the registration form"
+            initial={lookups.ageGroups}
           />
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <h2 className="font-display text-xl font-semibold text-navy-900">
-            Membership statuses
-          </h2>
-        </CardHeader>
-        <CardBody>
           <LookupManager
+            title="Membership statuses"
             table="membership_statuses"
-            items={lookups.membershipStatuses}
-            label="membership status"
+            tooltip="Member, Visitor, etc."
+            initial={lookups.membershipStatuses}
           />
-        </CardBody>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <h2 className="font-display text-xl font-semibold text-navy-900">
-            Survey age groups
-          </h2>
-          <p className="text-sm text-navy-600 mt-1">
-            Used on the public survey form.
-          </p>
-        </CardHeader>
-        <CardBody>
           <LookupManager
+            title="Age groups (survey)"
             table="survey_age_groups"
-            items={lookups.surveyAgeGroups}
-            label="age group"
+            tooltip="Age brackets for the survey form"
+            initial={lookups.surveyAgeGroups}
           />
-        </CardBody>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

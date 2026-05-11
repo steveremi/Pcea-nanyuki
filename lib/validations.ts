@@ -2,9 +2,6 @@ import { z } from "zod";
 import { ASSIGNABLE_ROLES } from "./types";
 
 // ----- Registration -----
-// Note: age_group, district, ministries[], membership_status are validated
-// against the database lookup tables via a Postgres trigger on insert.
-// Frontend just enforces non-empty strings; DB enforces actual values.
 export const registrationSchema = z.object({
   full_name: z
     .string()
@@ -26,6 +23,13 @@ export const registrationSchema = z.object({
     .max(3, "You can pick a maximum of 3 ministries"),
   membership_status: z.string().min(1, "Please pick your membership status"),
   amount: z.coerce.number().min(0, "Amount cannot be negative"),
+  mpesa_code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{10}$/i, "M-Pesa code must be 10 letters/digits")
+    .optional()
+    .or(z.literal("")),
   notes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 export type RegistrationInput = z.infer<typeof registrationSchema>;
@@ -66,8 +70,12 @@ export const adminProfileSchema = z.object({
   email: z.string().email(),
   password: z
     .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(72),
+    .min(10, "Password must be at least 10 characters")
+    .max(72)
+    .regex(/[A-Z]/, "Include at least 1 uppercase letter")
+    .regex(/[a-z]/, "Include at least 1 lowercase letter")
+    .regex(/[0-9]/, "Include at least 1 number")
+    .regex(/[^A-Za-z0-9]/, "Include at least 1 special character (!@#$ etc)"),
   full_name: z.string().trim().min(2).max(120),
   role: z.enum(ASSIGNABLE_ROLES),
 });

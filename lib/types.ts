@@ -1,12 +1,4 @@
 // Domain types
-//
-// Lookup values (district, ministry, age_group, membership_status,
-// survey age_group) are SOURCED FROM SUPABASE LOOKUP TABLES at runtime.
-// Officers can add/remove them from the admin UI. So in TypeScript these
-// are plain `string` — the database is the source of truth.
-//
-// Only `Role` stays as a strict literal type because the role check is
-// hardcoded in RLS policies and changing it is a code-level decision.
 
 export const ROLES = [
   "superadmin",
@@ -17,9 +9,6 @@ export const ROLES = [
   "vice_secretary",
 ] as const;
 
-/** Roles that can be assigned to officers from the UI.
- *  Superadmin is excluded — only the developer creates/deletes that
- *  via direct SQL access. */
 export const ASSIGNABLE_ROLES = [
   "chairman",
   "vice_chairman",
@@ -39,6 +28,16 @@ export const ROLE_LABELS: Record<Role, string> = {
   vice_secretary: "Vice Secretary",
 };
 
+export const PAYMENT_STATUSES = ["pending", "confirmed", "failed", "waived"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: "Pending verification",
+  confirmed: "Confirmed",
+  failed: "Failed / not received",
+  waived: "Waived",
+};
+
 export type Registration = {
   id: string;
   full_name: string;
@@ -51,6 +50,8 @@ export type Registration = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  mpesa_code: string | null;
+  payment_status: PaymentStatus;
 };
 
 export type SurveyResponse = {
@@ -83,5 +84,12 @@ export type AdminProfile = {
   role: Role;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
+  must_change_password: boolean;
+};
+
+export type SiteSetting = {
+  key: string;
+  value: string;
   updated_at: string;
 };

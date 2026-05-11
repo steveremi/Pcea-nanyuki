@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Shield,
   Settings as SettingsIcon,
+  Banknote,
   LogOut,
   ChevronDown,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const NAV_BASE: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/registrations", label: "Registrations", icon: Users },
   { href: "/admin/surveys", label: "Surveys", icon: ClipboardList },
+  { href: "/admin/payments", label: "Payments", icon: Banknote },
   { href: "/admin/team", label: "Officers", icon: Shield },
 ];
 

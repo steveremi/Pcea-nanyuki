@@ -1,45 +1,39 @@
 "use client";
 
-import * as React from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { registrationSchema, type RegistrationInput } from "@/lib/validations";
+import { CheckCircle2, Loader2, Smartphone, Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import type { LookupItem } from "@/lib/lookups";
-import { Button } from "@/components/ui/button";
+import {
+  registrationSchema,
+  type RegistrationInput,
+} from "@/lib/validations";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Field } from "@/components/ui/field";
-import { RadioGroup } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import type { LookupSet } from "@/lib/lookups";
+import type { SiteSettings } from "@/lib/site-settings";
 
 type Props = {
-  ageGroups: LookupItem[];
-  districts: LookupItem[];
-  ministries: LookupItem[];
-  membershipStatuses: LookupItem[];
+  lookups: LookupSet;
+  settings: SiteSettings;
 };
 
-export function RegistrationForm({
-  ageGroups,
-  districts,
-  ministries,
-  membershipStatuses,
-}: Props) {
+export function RegistrationForm({ lookups, settings }: Props) {
   const router = useRouter();
-  const supabase = React.useMemo(() => createClient(), []);
+  const [pending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
 
   const {
-    control,
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<RegistrationInput>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -49,31 +43,46 @@ export function RegistrationForm({
       contact: "",
       ministries: [],
       membership_status: "",
-      amount: 200,
+      amount: 0,
+      mpesa_code: "",
       notes: "",
     },
   });
 
-  const selectedMinistries = watch("ministries") ?? [];
+  const ministries = watch("ministries") ?? [];
+  const amount = Number(watch("amount") ?? 0);
 
-  function toggleMinistry(m: string) {
-    const current = selectedMinistries;
-    if (current.includes(m)) {
+  function toggleMinistry(name: string) {
+    if (ministries.includes(name)) {
       setValue(
         "ministries",
-        current.filter((x) => x !== m),
+        ministries.filter((m) => m !== name),
         { shouldValidate: true }
       );
     } else {
-      if (current.length >= 3) {
+      if (ministries.length >= 3) {
         toast.error("You can pick a maximum of 3 ministries");
         return;
       }
-      setValue("ministries", [...current, m], { shouldValidate: true });
+      setValue("ministries", [...ministries, name], { shouldValidate: true });
     }
   }
 
+  function copyTreasurerNumber() {
+    navigator.clipboard.writeText(settings.treasurer_mpesa_number);
+    toast.success("M-Pesa number copied");
+  }
+
   async function onSubmit(values: RegistrationInput) {
+    setSubmitting(true);
+    const supabase = createClient();
+
+    if (values.amount > 0 && !values.mpesa_code) {
+      toast.error("Please enter the M-Pesa confirmation code");
+      setSubmitting(false);
+      return;
+    }
+
     const { error } = await supabase.from("registrations").insert({
       full_name: values.full_name,
       age_group: values.age_group,
@@ -82,195 +91,200 @@ export function RegistrationForm({
       ministries: values.ministries,
       membership_status: values.membership_status,
       amount: values.amount,
+      mpesa_code: values.mpesa_code || null,
       notes: values.notes || null,
+      payment_status: values.amount > 0 ? "pending" : "waived",
     });
+
+    setSubmitting(false);
 
     if (error) {
       console.error(error);
-      toast.error("Could not save your registration. Please try again.");
+      toast.error(error.message || "Could not save. Please try again.");
       return;
     }
 
-    toast.success("Registration submitted successfully.");
-    router.push("/register/thanks");
+    startTransition(() => {
+      router.push("/register/thanks");
+    });
   }
 
+  const busy = submitting || pending;
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {/* 1. Full name */}
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5 bg-white rounded-2xl border border-cream-300 p-5 sm:p-8 shadow-[0_1px_0_rgba(15,42,71,0.04)]"
+    >
       <Field error={errors.full_name?.message}>
-        <Label htmlFor="full_name" required>
-          Full name
-        </Label>
+        <Label required>Full name</Label>
         <Input
-          id="full_name"
-          placeholder="e.g. Jane Wanjiru Mwangi"
           {...register("full_name")}
+          placeholder="e.g. Jane Wanjiru"
+          autoComplete="name"
         />
       </Field>
 
-      {/* 2. Age group */}
-      <Field error={errors.age_group?.message}>
-        <Label required>Age group</Label>
-        <Controller
-          control={control}
-          name="age_group"
-          render={({ field }) => (
-            <RadioGroup
-              name="age_group"
-              value={field.value}
-              onChange={field.onChange}
-              columns={3}
-              options={ageGroups.map((a) => ({
-                value: a.name,
-                label: `${a.name} years`,
-              }))}
-            />
-          )}
-        />
-      </Field>
+      <div className="grid sm:grid-cols-2 gap-5">
+        <Field error={errors.age_group?.message}>
+          <Label required>Age group</Label>
+          <select
+            {...register("age_group")}
+            className="h-11 w-full rounded-lg border border-cream-300 bg-white px-3 text-sm focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15 focus:outline-none"
+            defaultValue=""
+          >
+            <option value="" disabled>Select…</option>
+            {lookups.ageGroups.map((g) => (
+              <option key={g.id} value={g.name}>{g.name}</option>
+            ))}
+          </select>
+        </Field>
 
-      {/* 3. District */}
-      <Field error={errors.district?.message}>
-        <Label required>District</Label>
-        <Controller
-          control={control}
-          name="district"
-          render={({ field }) => (
-            <RadioGroup
-              name="district"
-              value={field.value}
-              onChange={field.onChange}
-              columns={3}
-              options={districts.map((d) => ({
-                value: d.name,
-                label: d.name,
-              }))}
-            />
-          )}
-        />
-      </Field>
+        <Field error={errors.district?.message}>
+          <Label required>District</Label>
+          <select
+            {...register("district")}
+            className="h-11 w-full rounded-lg border border-cream-300 bg-white px-3 text-sm focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15 focus:outline-none"
+            defaultValue=""
+          >
+            <option value="" disabled>Select…</option>
+            {lookups.districts.map((d) => (
+              <option key={d.id} value={d.name}>{d.name}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
 
-      {/* 4. Contact */}
-      <Field
-        error={errors.contact?.message}
-        hint="We'll only use this for fellowship updates."
-      >
-        <Label htmlFor="contact" required>
-          Contact (phone)
-        </Label>
+      <Field error={errors.contact?.message}>
+        <Label required>Phone number</Label>
         <Input
-          id="contact"
-          type="tel"
-          placeholder="0712 345 678"
           {...register("contact")}
+          placeholder="0712345678"
+          inputMode="tel"
+          autoComplete="tel"
         />
       </Field>
 
-      {/* 5. Ministries */}
-      <Field
-        error={errors.ministries?.message as string | undefined}
-        hint={`Pick up to 3 — currently selected: ${selectedMinistries.length}/3`}
-      >
-        <Label required>Ministries you would like to serve in</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {ministries.map((m) => {
-            const checked = selectedMinistries.includes(m.name);
+      <Field error={errors.ministries?.message}>
+        <Label required>Ministries (pick up to 3)</Label>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {lookups.ministries.map((m) => {
+            const checked = ministries.includes(m.name);
             return (
-              <label
+              <button
                 key={m.id}
-                className={`flex items-center gap-3 rounded-xl border bg-white px-4 py-3 cursor-pointer transition-all ${
+                type="button"
+                onClick={() => toggleMinistry(m.name)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition text-left ${
                   checked
-                    ? "border-navy-900 ring-2 ring-navy-900/10"
-                    : "border-cream-300 hover:border-navy-700/40"
+                    ? "border-navy-700 bg-navy-50 text-navy-900"
+                    : "border-cream-300 bg-white text-navy-700 hover:border-navy-300"
                 }`}
               >
-                <Checkbox
-                  checked={checked}
-                  onChange={() => toggleMinistry(m.name)}
-                />
-                <span className="text-sm font-medium text-navy-900">
-                  {m.name}
+                <span
+                  className={`size-4 rounded grid place-items-center border ${
+                    checked
+                      ? "bg-navy-700 border-navy-700 text-white"
+                      : "border-cream-300"
+                  }`}
+                >
+                  {checked && <CheckCircle2 className="size-3" />}
                 </span>
-              </label>
+                <span className="flex-1 truncate">{m.name}</span>
+              </button>
             );
           })}
         </div>
       </Field>
 
-      {/* 6. Membership status */}
       <Field error={errors.membership_status?.message}>
         <Label required>Membership status</Label>
-        <Controller
-          control={control}
-          name="membership_status"
-          render={({ field }) => (
-            <RadioGroup
-              name="membership_status"
-              value={field.value}
-              onChange={field.onChange}
-              columns={2}
-              options={membershipStatuses.map((m) => ({
-                value: m.name,
-                label: m.name,
-                description:
-                  m.name === "Full Member"
-                    ? "Confirmed member of PCEA NTC"
-                    : "Attending but not yet confirmed",
-              }))}
-            />
-          )}
-        />
-      </Field>
-
-      {/* 7. Amount */}
-      <Field
-        error={errors.amount?.message}
-        hint="Registration contribution. The default is KES 200 — you can adjust."
-      >
-        <Label htmlFor="amount" required>
-          Amount (KES)
-        </Label>
-        <Input
-          id="amount"
-          type="number"
-          inputMode="numeric"
-          min={0}
-          step={50}
-          {...register("amount")}
-        />
-      </Field>
-
-      {/* Notes */}
-      <Field error={errors.notes?.message} hint="Optional — anything else we should know.">
-        <Label htmlFor="notes">Notes</Label>
-        <Textarea
-          id="notes"
-          placeholder="Optional"
-          {...register("notes")}
-        />
-      </Field>
-
-      <div className="pt-4 flex flex-col sm:flex-row sm:items-center gap-4">
-        <Button
-          type="submit"
-          size="lg"
-          variant="primary"
-          disabled={isSubmitting}
-          className="sm:min-w-56"
+        <select
+          {...register("membership_status")}
+          className="h-11 w-full rounded-lg border border-cream-300 bg-white px-3 text-sm focus:border-navy-700 focus:ring-2 focus:ring-navy-700/15 focus:outline-none"
+          defaultValue=""
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="size-4 animate-spin" /> Saving…
-            </>
-          ) : (
-            "Complete Registration"
-          )}
-        </Button>
-        <p className="text-xs text-navy-500">
-          By submitting you agree to be contacted by the youth office.
-        </p>
+          <option value="" disabled>Select…</option>
+          {lookups.membershipStatuses.map((s) => (
+            <option key={s.id} value={s.name}>{s.name}</option>
+          ))}
+        </select>
+      </Field>
+
+      <div className="rounded-xl border border-navy-100 bg-navy-50/40 p-4 space-y-4">
+        <div className="flex items-start gap-2">
+          <Smartphone className="size-4 text-navy-700 mt-0.5 shrink-0" />
+          <div>
+            <h3 className="text-sm font-semibold text-navy-900">
+              Contribution (optional)
+            </h3>
+            <p className="text-xs text-navy-600 mt-0.5">
+              Send M-Pesa to{" "}
+              <button
+                type="button"
+                onClick={copyTreasurerNumber}
+                className="font-semibold text-navy-900 underline-offset-2 hover:underline inline-flex items-center gap-1"
+              >
+                {settings.treasurer_mpesa_number}
+                <Copy className="size-3" />
+              </button>{" "}
+              ({settings.treasurer_name}), then paste the confirmation code below.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Field error={errors.amount?.message}>
+            <Label>Amount (Ksh)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={50}
+              {...register("amount")}
+              placeholder="0"
+              inputMode="numeric"
+            />
+          </Field>
+
+          <Field error={errors.mpesa_code?.message}>
+            <Label>{amount > 0 ? "M-Pesa code (required)" : "M-Pesa code"}</Label>
+            <Input
+              {...register("mpesa_code")}
+              placeholder="e.g. KH1A23B4CD"
+              className="uppercase"
+              maxLength={10}
+            />
+          </Field>
+        </div>
+        {amount > 0 && (
+          <p className="text-[11px] text-navy-500">
+            The treasurer will verify your code and confirm your payment.
+          </p>
+        )}
       </div>
+
+      <Field error={errors.notes?.message}>
+        <Label>Anything else? (optional)</Label>
+        <Textarea
+          {...register("notes")}
+          placeholder="Optional note for the team"
+          rows={3}
+        />
+      </Field>
+
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-full bg-navy-900 text-cream-50 text-sm font-semibold hover:bg-navy-800 transition disabled:opacity-60"
+      >
+        {busy ? (
+          <>
+            <Loader2 className="size-4 animate-spin" /> Submitting…
+          </>
+        ) : (
+          "Submit registration"
+        )}
+      </button>
     </form>
   );
 }
