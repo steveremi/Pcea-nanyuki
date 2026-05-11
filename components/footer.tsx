@@ -9,13 +9,13 @@ export function SiteFooter() {
           Fellowship
         </p>
         <AlvaniaMark />
-        
+        <a
           href="/admin/login"
           className="text-xs text-navy-500 hover:text-navy-900 underline-offset-4 hover:underline transition"
         >
           Officer login
         </a>
-        
+        <a
           href="https://wa.me/254702841059"
           target="_blank"
           rel="noopener noreferrer"
